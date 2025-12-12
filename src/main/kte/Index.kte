@@ -145,11 +145,10 @@
     </div>
 
 
-    <form hx-post="/messages" hx-swap="none">
+    <form hx-post="/messages" hx-swap="none" hx-on::after-request="if(event.detail.successful)document.getElementById('message-input').value = ''">
         <input id="username-input" type="text" name="author" placeholder="name (optional)">
         <input id="message-input" type="text" name="message" placeholder="your message" required>
-        <button type="submit"
-                hx-on::after-request="if(event.detail.successful)document.getElementById('message-input').value = ''">
+        <button type="submit">
             Send
         </button>
     </form>
