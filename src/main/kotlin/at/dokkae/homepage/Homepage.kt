@@ -1,0 +1,88 @@
+package at.dokkae.homepage
+
+import at.dokkae.homepage.extensions.Precompiled
+import at.dokkae.homepage.templates.Index
+import org.http4k.core.HttpHandler
+import org.http4k.core.Method.*
+import org.http4k.core.Response
+import org.http4k.core.Status
+import org.http4k.core.body.form
+import org.http4k.core.getFirst
+import org.http4k.core.toParametersMap
+import org.http4k.routing.bindHttp
+import org.http4k.routing.bindSse
+import org.http4k.routing.poly
+import org.http4k.routing.routes
+import org.http4k.routing.sse
+import org.http4k.server.Jetty
+import org.http4k.server.asServer
+import org.http4k.sse.Sse
+import org.http4k.sse.SseMessage
+import org.http4k.sse.SseResponse
+import org.http4k.template.JTETemplates
+import org.http4k.template.ViewModel
+import org.jetbrains.kotlin.backend.common.push
+import java.time.Instant
+import java.util.UUID
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.concurrent.thread
+
+data class Message (
+    val author: String,
+    val content: String,
+    val createdAt: Instant = Instant.now(),
+    val id: UUID = UUID.randomUUID(),
+) : ViewModel {
+    override fun template(): String = "partials/Message"
+}
+
+fun main() {
+    val messages = CopyOnWriteArrayList<Message>()
+    val subscribers = CopyOnWriteArrayList<Sse>()
+    val renderer = JTETemplates().Precompiled("build/classes/jte")
+
+    messages.push(Message("Kurisu", "Hello World!"))
+    messages.push(Message("Violet", "Haii Kurisu!"))
+
+    val indexHandler: HttpHandler = {
+        Response(Status.OK).body(renderer(Index(messages)))
+    }
+
+    val sse = sse(
+        "/message-events" bindSse { req ->
+            SseResponse { sse ->
+                subscribers.add(sse)
+
+                sse.onClose { subscribers.remove(sse) }
+            }
+        }
+    )
+
+    val http = routes(
+        "/" bindHttp GET to indexHandler,
+
+        "/messages" bindHttp POST to { req ->
+            val params = req.form().toParametersMap()
+            val author = params.getFirst("author").takeIf { !it.isNullOrBlank() } ?: "Anonymous"
+            val message = params.getFirst("message")
+
+            if (message == null) {
+                Response(Status.BAD_REQUEST)
+            } else {
+                val msg = Message(author, message)
+                val sseMsg = SseMessage.Data(renderer(msg))
+
+                messages.push(msg)
+                subscribers.forEach {
+                    thread { it.send(sseMsg) }
+                }
+
+                Response(Status.OK)
+            }
+        }
+    )
+
+    poly(http, sse).asServer(Jetty(port = 9000)).start()
+
+    println("Server started on http://localhost:9000")
+}

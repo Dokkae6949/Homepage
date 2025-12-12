@@ -1,0 +1,11 @@
+@import at.dokkae.homepage.Message
+
+@param message: Message
+
+<div class="message">
+    <strong>${message.author}</strong>:
+    ${message.content}
+    <span style="color:#888; font-size:.8rem;">
+        (${message.createdAt.toString()})
+    </span>
+</div>

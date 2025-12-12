@@ -1,0 +1,160 @@
+@import at.dokkae.homepage.templates.Index
+
+@param model: Index
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Simple Chat — http4k + JTE + htmx</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4" integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --card: #ffffff;
+            --border: #d0d0d5;
+            --bubble-self: #daf0ff;
+            --bubble-other: #ececec;
+            --text-dark: #222;
+            --text-light: #666;
+            --radius: 12px;
+            --spacing: 12px;
+            --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font);
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            padding: 32px 12px;
+        }
+
+        #chat {
+            width: 100%;
+            max-width: 560px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            text-align: center;
+        }
+
+        #messages {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: var(--spacing);
+            margin-bottom: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        /* Nice scrollbar */
+        #messages::-webkit-scrollbar { width: 6px; }
+        #messages::-webkit-scrollbar-thumb {
+            background: #bbb;
+            border-radius: 3px;
+        }
+
+        .message {
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            max-width: 85%;
+            font-size: 0.95rem;
+            line-height: 1.35;
+            color: var(--text-dark);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .message-author {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-light);
+        }
+
+        .message-self {
+            align-self: flex-end;
+            background: var(--bubble-self);
+        }
+
+        .message-other {
+            align-self: flex-start;
+            background: var(--bubble-other);
+        }
+
+        form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #fff;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: #1e88ff;
+            border: none;
+            border-radius: var(--radius);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #0c74e8;
+        }
+
+        p.note {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            margin-top: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body hx-ext="sse">
+<main id="chat">
+    <h1>Simple Chat</h1>
+
+    <div id="messages" sse-connect="/message-events" sse-swap="message" hx-swap="afterbegin">
+        @for (message in model.messages.reversed())
+            @template.partials.Message(message)
+        @endfor
+    </div>
+
+
+    <form hx-post="/messages" hx-swap="none">
+        <input id="username-input" type="text" name="author" placeholder="name (optional)">
+        <input id="message-input" type="text" name="message" placeholder="your message" required>
+        <button type="submit"
+                hx-on::after-request="if(event.detail.successful)document.getElementById('message-input').value = ''">
+            Send
+        </button>
+    </form>
+
+    <p style="font-size: .9rem; color: #666">No auth — anyone can post. Messages are stored only in memory.</p>
+</main>
+</body>
+</html>
