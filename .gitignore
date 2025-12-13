@@ -38,6 +38,10 @@ replay_pid*
 **/build/
 !**/src/**/build/
 
+# Allow generated code fragments for Docker builds
+!build/generated-src/
+!build/generated-resources/
+
 # Ignore Gradle GUI config
 gradle-app.setting
 

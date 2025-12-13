@@ -297,6 +297,8 @@ tasks.register("cleanGenerated") {
     }
 }
 
+// Don't automatically clean generated code - it should be committed
+// Use ./gradlew cleanGenerated explicitly if you need to clean it
 tasks.named("clean") {
-    dependsOn("cleanGenerated")
+    // Removed dependsOn("cleanGenerated")
 }

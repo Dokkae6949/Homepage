@@ -1,13 +1,6 @@
 # --- Stage 1: Build the JAR ---
 FROM gradle:9.2.1-jdk21 AS build
 
-ARG DB_URL
-ARG DB_USERNAME
-ARG DB_PASSWORD
-ENV DB_URL=${DB_URL}
-ENV DB_USERNAME=${DB_USERNAME}
-ENV DB_PASSWORD=${DB_PASSWORD}
-
 # Set working dir
 WORKDIR /app
 
@@ -18,8 +11,12 @@ COPY --chown=gradle:gradle gradle ./gradle
 # Copy source code
 COPY --chown=gradle:gradle src ./src
 
-# Build the fat jar
-RUN ./gradlew clean build --no-daemon
+# Copy pre-generated code fragments
+COPY --chown=gradle:gradle build/generated-src ./build/generated-src
+COPY --chown=gradle:gradle build/generated-resources ./build/generated-resources
+
+# Build the fat jar without cleaning (preserves generated code)
+RUN ./gradlew build -x clean -x cleanGenerated -x jooqCodegen -x flywayMigrate -x precompileJte --no-daemon
 
 # --- Stage 2: Run the app ---
 FROM eclipse-temurin:21-jdk-alpine
