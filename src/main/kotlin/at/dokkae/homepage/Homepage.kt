@@ -1,5 +1,6 @@
 package at.dokkae.homepage
 
+import at.dokkae.homepage.config.Environment
 import at.dokkae.homepage.extensions.Precompiled
 import at.dokkae.homepage.repository.MessageRepository
 import at.dokkae.homepage.repository.impls.JooqMessageRepository
@@ -24,7 +25,6 @@ import org.http4k.sse.SseMessage
 import org.http4k.sse.SseResponse
 import org.http4k.template.JTETemplates
 import org.http4k.template.ViewModel
-import org.jetbrains.kotlin.backend.common.push
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import java.sql.DriverManager
@@ -51,9 +51,12 @@ data class Message(
 }
 
 fun main() {
-    val env = dotenv()
+    val env = Environment.load(dotenv {
+        ignoreIfMissing = true
+        ignoreIfMalformed = true
+    })
 
-    val connection = DriverManager.getConnection(env["DB_URL"], env["DB_USERNAME"], env["DB_PASSWORD"])
+    val connection = DriverManager.getConnection(env.dbUrl, env.dbUsername, env.dbPassword)
     val dslContext = DSL.using(connection, SQLDialect.POSTGRES)
     val messageRepository: MessageRepository = JooqMessageRepository(dslContext)
 
@@ -98,7 +101,7 @@ fun main() {
         }
     )
 
-    poly(http, sse).asServer(Jetty(port = 9000)).start()
+    poly(http, sse).asServer(Jetty(port = env.port)).start()
 
-    println("Server started on http://localhost:9000")
+    println("Server started on http://${env.host}:${env.port}")
 }
