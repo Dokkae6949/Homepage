@@ -269,10 +269,15 @@ tasks.named<ShadowJar>("shadowJar") {
 
     archiveFileName.set("app.jar")
 
-    mergeServiceFiles()
+    mergeServiceFiles {
+        include("META-INF/services/**")
+
+        // Fix: https://github.com/flyway/flyway/issues/4170#issuecomment-3569762563
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    }
 
     exclude(
-        "META-INF/*. RSA",
+        "META-INF/*.RSA",
         "META-INF/*.SF",
         "META-INF/*.DSA"
     )
