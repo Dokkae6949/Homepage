@@ -6,6 +6,7 @@ import at.dokkae.homepage.repository.MessageRepository
 import at.dokkae.homepage.repository.impls.JooqMessageRepository
 import at.dokkae.homepage.templates.Index
 import io.github.cdimascio.dotenv.dotenv
+import org.flywaydb.core.Flyway
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.*
 import org.http4k.core.Response
@@ -33,6 +34,17 @@ import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.concurrent.thread
 
+fun migrateDatabase(env: Environment) {
+    val flyway = Flyway.configure()
+        .dataSource(env.dbUrl, env.dbUsername, env.dbPassword)
+        .locations("classpath:db/migration")
+        .baselineOnMigrate(true) // optional: creates baseline if no schema history exists
+        .load()
+
+    val result = flyway.migrate()
+    println("Migrated ${result.migrationsExecuted} migration${if (result.migrationsExecuted != 1) "s" else ""}")
+}
+
 data class Message(
     val author: String,
     val content: String,
@@ -55,6 +67,10 @@ fun main() {
         ignoreIfMissing = true
         ignoreIfMalformed = true
     })
+
+    if (env.dbMigrate) {
+        migrateDatabase(env)
+    }
 
     val connection = DriverManager.getConnection(env.dbUrl, env.dbUsername, env.dbPassword)
     val dslContext = DSL.using(connection, SQLDialect.POSTGRES)

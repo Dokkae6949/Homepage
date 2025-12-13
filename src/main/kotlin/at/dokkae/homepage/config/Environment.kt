@@ -8,6 +8,7 @@ data class Environment(
     val dbUrl: String,
     val dbUsername: String,
     val dbPassword: String,
+    val dbMigrate: Boolean,
 ) {
     companion object {
         /**
@@ -20,6 +21,7 @@ data class Environment(
             dbUrl = requireEnv(dotenv, "DB_URL"),
             dbUsername = requireEnv(dotenv, "DB_USERNAME"),
             dbPassword = requireEnv(dotenv, "DB_PASSWORD"),
+            dbMigrate = dotenv["DB_MIGRATE"]?.toBoolean() ?: false
         )
 
         private fun requireEnv(dotenv: Dotenv, key: String): String {
