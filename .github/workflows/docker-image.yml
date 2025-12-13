@@ -60,21 +60,21 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Wait for PostgreSQL
-        run: |
-          until pg_isready -h localhost -p 5445 -U postgres; do
-            echo "Waiting for postgres..."
-            sleep 2
-          done
+      - name: Create Docker network
+        run: docker network create homepagenetwork || true
+
+      - name: Connect services to network
+        run: docker network connect homepagenetwork postgres 2>/dev/null || true
+      
 
       - name: Build and publish Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          network: host
+          network: homepagenetwork
           build-args: |
-            DB_URL=jdbc:postgresql://localhost:5445/homepage
+            DB_URL=jdbc:postgresql://postgres:5445/homepage
             DB_USERNAME=postgres
             DB_PASSWORD=postgres
           tags: ${{ steps.meta.outputs.tags }}
