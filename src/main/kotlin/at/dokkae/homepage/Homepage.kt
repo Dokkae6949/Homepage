@@ -1,7 +1,10 @@
 package at.dokkae.homepage
 
 import at.dokkae.homepage.extensions.Precompiled
+import at.dokkae.homepage.repository.MessageRepository
+import at.dokkae.homepage.repository.impls.JooqMessageRepository
 import at.dokkae.homepage.templates.Index
+import io.github.cdimascio.dotenv.dotenv
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method.*
 import org.http4k.core.Response
@@ -22,30 +25,43 @@ import org.http4k.sse.SseResponse
 import org.http4k.template.JTETemplates
 import org.http4k.template.ViewModel
 import org.jetbrains.kotlin.backend.common.push
+import org.jooq.SQLDialect
+import org.jooq.impl.DSL
+import java.sql.DriverManager
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.concurrent.thread
 
-data class Message (
+data class Message(
     val author: String,
     val content: String,
-    val createdAt: Instant = Instant.now(),
+
     val id: UUID = UUID.randomUUID(),
+    val createdAt: Instant = Instant.now(),
+    val updatedAt: Instant? = null
 ) : ViewModel {
+    init {
+        require(author.length <= 31) { "Author must be 31 characters or less" }
+        require(content.length <= 255) { "Content must be 255 characters or less" }
+    }
+
+
     override fun template(): String = "partials/Message"
 }
 
 fun main() {
-    val messages = CopyOnWriteArrayList<Message>()
-    val subscribers = CopyOnWriteArrayList<Sse>()
-    val renderer = JTETemplates().Precompiled("build/classes/jte")
+    val env = dotenv()
 
-    messages.push(Message("Kurisu", "Hello World!"))
-    messages.push(Message("Violet", "Haii Kurisu!"))
+    val connection = DriverManager.getConnection(env["DB_URL"], env["DB_USERNAME"], env["DB_PASSWORD"])
+    val dslContext = DSL.using(connection, SQLDialect.POSTGRES)
+    val messageRepository: MessageRepository = JooqMessageRepository(dslContext)
+
+    val subscribers = CopyOnWriteArrayList<Sse>()
+    val renderer = JTETemplates().Precompiled("build/generated-resources/jte")
 
     val indexHandler: HttpHandler = {
-        Response(Status.OK).body(renderer(Index(messages)))
+        Response(Status.OK).body(renderer(Index(messageRepository.findAll())))
     }
 
     val sse = sse(
@@ -72,12 +88,12 @@ fun main() {
                 val msg = Message(author, message)
                 val sseMsg = SseMessage.Data(renderer(msg))
 
-                messages.push(msg)
+                messageRepository.save(msg)
                 subscribers.forEach {
                     thread { it.send(sseMsg) }
                 }
 
-                Response(Status.OK)
+                Response(Status.CREATED)
             }
         }
     )

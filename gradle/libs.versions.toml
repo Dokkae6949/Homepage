@@ -1,0 +1,83 @@
+[versions]
+kotlin = "2.2.20"
+shadow = "9.3.0"
+dotenv-plugin = "1.1.3"
+dotenv = "6.5.1"
+http4k = "6.23.1.0"
+jte = "3.2.1"
+flyway = "11.19.0"
+jooq = "3.20.10"
+junit = "6.0.0"
+postgresql = "42.7.7"
+taskinfo = "3.0.0"
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+dotenv-plugin = { id = "io.github.klahap.dotenv", version.ref = "dotenv-plugin" }
+jte = { id = "gg.jte.gradle", version.ref = "jte" }
+flyway = { id = "org.flywaydb.flyway", version.ref = "flyway" }
+jooq-codegen-gradle = { id = "org.jooq.jooq-codegen-gradle", version.ref = "jooq" }
+taskinfo = { id = "org.barfuin.gradle.taskinfo", version.ref = "taskinfo" }
+
+[bundles]
+http4k = [
+    "http4k-client-okhttp",
+    "http4k-core",
+    "http4k-server-jetty",
+    "http4k-template-jte",
+    "http4k-web-htmx"
+]
+
+testing = [
+    "http4k-testing-approval",
+    "http4k-testing-hamkrest",
+    "junit-jupiter-api",
+    "junit-jupiter-engine",
+    "junit-platform-launcher"
+]
+
+database = [
+    "flyway-core",
+    "jooq",
+    "jooq-meta",
+    "jooq-codegen",
+    "jooq-postgres"
+]
+
+[libraries]
+# Environment Management
+dotenv = { module = "io.github.cdimascio:dotenv-kotlin", version.ref = "dotenv" }
+
+# HTTP4K Platform (BOM)
+http4k-bom = { module = "org.http4k:http4k-bom", version.ref = "http4k" }
+
+# HTTP4K Dependencies
+http4k-client-okhttp = { module = "org.http4k:http4k-client-okhttp" }
+http4k-core = { module = "org.http4k:http4k-core" }
+http4k-server-jetty = { module = "org.http4k:http4k-server-jetty" }
+http4k-template-jte = { module = "org.http4k:http4k-template-jte" }
+http4k-web-htmx = { module = "org.http4k:http4k-web-htmx" }
+
+# JTE Templating
+jte-kotlin = { module = "gg.jte:jte-kotlin", version.ref = "jte" }
+
+# Database Driver
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+
+# Flyway
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway"}
+
+# Jooq
+jooq = { module = "org.jooq:jooq", version.ref = "jooq" }
+jooq-meta = { module = "org.jooq:jooq-meta", version.ref = "jooq" }
+jooq-codegen = { module = "org.jooq:jooq-codegen", version.ref = "jooq" }
+jooq-postgres = { module = "org.jooq:jooq-postgres-extensions", version.ref = "jooq" }
+
+# Testing
+http4k-testing-approval = { module = "org.http4k:http4k-testing-approval" }
+http4k-testing-hamkrest = { module = "org.http4k:http4k-testing-hamkrest" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }

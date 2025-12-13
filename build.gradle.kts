@@ -1,14 +1,42 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import io.github.klahap.dotenv.DotEnvBuilder
+import org.flywaydb.gradle.task.FlywayMigrateTask
 import org.gradle.api.JavaVersion.VERSION_21
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import kotlin.io.path.Path
 
-plugins {
-    kotlin("jvm") version "2.2.20"
+val env = DotEnvBuilder.dotEnv {
+    addFile("$rootDir/.env")
+    addSystemEnv()
+}
 
-    id("gg.jte.gradle") version "3.2.1"
-    id("com.gradleup.shadow") version "9.3.0"
+val envDbUrl: String = env["DB_URL"] ?: ""
+val envDbMigration: String = env["DB_MIGRATIONS"] ?: "src/main/resources/db/migration"
+val envDbUsername: String = env["DB_USERNAME"] ?: ""
+val envDbPassword: String = env["DB_PASSWORD"] ?: ""
+
+val generatedResourcesDirectory = "${layout.buildDirectory.get()}/generated-resources"
+val generatedSourcesDirectory = "${layout.buildDirectory.get()}/generated-src"
+
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.dotenv.plugin)
+    alias(libs.plugins.jte)
+    alias(libs.plugins.flyway)
+    alias(libs.plugins.jooq.codegen.gradle)
+    alias(libs.plugins.taskinfo)
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+repositories {
+    mavenCentral()
 }
 
 buildscript {
@@ -18,32 +46,20 @@ buildscript {
     }
 
     dependencies {
+        classpath(libs.postgresql)
+        classpath(libs.flyway.database.postgresql)
     }
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
-
-jte {
-    sourceDirectory.set(Path("src/main/kte"))
-    targetDirectory.set(Path("${layout.buildDirectory.get()}/classes/jte"))
-
-    precompile()
 }
 
 sourceSets.main {
-    resources.srcDir("${layout.buildDirectory.get()}/classes/jte")
-}
-
-repositories {
-    mavenCentral()
+    resources.srcDir("$generatedResourcesDirectory/jte")
+    kotlin.srcDir("$generatedSourcesDirectory/jooq")
 }
 
 tasks {
     withType<KotlinJvmCompile>().configureEach {
+        dependsOn("jooqCodegen")
+
         compilerOptions {
             allWarningsAsErrors = false
             jvmTarget.set(JVM_21)
@@ -55,6 +71,14 @@ tasks {
         useJUnitPlatform()
     }
 
+    withType<FlywayMigrateTask> {
+        dependsOn("initDb")
+    }
+
+    named("precompileJte") {
+        dependsOn("compileKotlin")
+    }
+
     named<ShadowJar>("shadowJar") {
         manifest {
             attributes("Main-Class" to "at.dokkae.homepage.HomepageKt")
@@ -62,11 +86,17 @@ tasks {
 
         dependsOn("precompileJte")
 
-        from("${layout.buildDirectory.get()}/classes/jte")
+        mustRunAfter("flywayMigrate", "jooqCodegen")
+
+        from("$generatedResourcesDirectory/jte")
 
         archiveFileName.set("app.jar")
 
         exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
+    }
+
+    register("buildDocker") {
+
     }
 
     java {
@@ -76,17 +106,101 @@ tasks {
 }
 
 dependencies {
-    implementation(platform("org.http4k:http4k-bom:6.23.1.0"))
-    implementation("org.http4k:http4k-client-okhttp")
-    implementation("org.http4k:http4k-core")
-    implementation("org.http4k:http4k-server-jetty")
-    implementation("org.http4k:http4k-template-jte")
-    implementation("org.http4k:http4k-web-htmx")
-    implementation("gg.jte:jte-kotlin:3.2.1")
-    testImplementation("org.http4k:http4k-testing-approval")
-    testImplementation("org.http4k:http4k-testing-hamkrest")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:6.0.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:6.0.0")
-    testImplementation("org.junit.platform:junit-platform-launcher:6.0.0")
+    implementation(platform(libs.http4k.bom))
+
+    implementation(libs.dotenv)
+
+    implementation(libs.bundles.http4k)
+    implementation(libs.jte.kotlin)
+    implementation(libs.bundles.database)
+
+    testImplementation(libs.bundles.testing)
+
+    jooqCodegen(libs.jooq.meta)
+    jooqCodegen(libs.jooq.postgres)
 }
 
+// ========== JTE Templating ==========
+jte {
+    sourceDirectory.set(Path("src/main/kte"))
+    targetDirectory.set(Path("$generatedResourcesDirectory/jte"))
+    precompile()
+}
+
+// ========== FlyWay ==========
+flyway {
+    url = envDbUrl
+    user = envDbUsername
+    password = envDbPassword
+    locations = arrayOf("filesystem:$envDbMigration")
+    baselineOnMigrate = true
+    validateMigrationNaming = true
+}
+
+tasks.register("initDb") {
+    doFirst {
+        println("Database Configuration:")
+        println("  Raw URL from env: $envDbUrl")
+        println("  Resolved URL: $envDbUrl")
+        println("  Migrations: $envDbMigration")
+        println("  Credentials:")
+        println("    Username: $envDbUsername")
+        println("    Password: ${"*".repeat(envDbPassword.length)}")
+    }
+}
+
+tasks.named("flywayMigrate") {
+    finalizedBy("jooqCodegen")
+}
+
+// ========== Jooq ==========
+jooq {
+    configuration {
+        logging = org.jooq.meta.jaxb.Logging.WARN
+
+        jdbc {
+            driver = "org.postgresql.Driver"
+            url = envDbUrl
+            user = envDbUsername
+            password = envDbPassword
+        }
+
+        generator {
+            name = "org.jooq.codegen.KotlinGenerator"
+
+            database {
+                name = "org.jooq.meta.postgres.PostgresDatabase"
+                inputSchema = "public"
+
+                // SQLite specific configuration
+                includes = ".*"
+                excludes = """
+                            flyway_.*|
+                            pg_.*|
+                            information_schema.*
+                        """.trimMargin().replace("\n", "")
+            }
+
+            generate {
+                // Recommended settings for Kotlin
+                isDeprecated = false
+                isRecords = true
+                isImmutablePojos = true
+                isFluentSetters = true
+                isKotlinNotNullRecordAttributes = true
+                isKotlinNotNullPojoAttributes = true
+                isKotlinNotNullInterfaceAttributes = true
+                isPojosAsKotlinDataClasses = true
+            }
+
+            target {
+                packageName = "at.dokkae.homepage.generated.jooq"
+                directory = "$generatedSourcesDirectory/jooq"
+            }
+
+            strategy {
+                name = "org.jooq.codegen.DefaultGeneratorStrategy"
+            }
+        }
+    }
+}
