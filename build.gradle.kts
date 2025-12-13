@@ -296,7 +296,3 @@ tasks.register("cleanGenerated") {
         logger.lifecycle("✓ Cleaned generated code directories")
     }
 }
-
-tasks.named("clean") {
-    dependsOn("cleanGenerated")
-}
