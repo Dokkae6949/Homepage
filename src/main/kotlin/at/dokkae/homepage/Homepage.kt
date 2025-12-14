@@ -1,10 +1,12 @@
 package at.dokkae.homepage
 
+import at.dokkae.homepage.config.Env
 import at.dokkae.homepage.config.Environment
 import at.dokkae.homepage.extensions.Precompiled
 import at.dokkae.homepage.repository.MessageRepository
 import at.dokkae.homepage.repository.impls.JooqMessageRepository
-import at.dokkae.homepage.templates.Index
+import at.dokkae.homepage.templates.IndexTemplate
+import at.dokkae.homepage.templates.MessageTemplate
 import io.github.cdimascio.dotenv.dotenv
 import org.flywaydb.core.Flyway
 import org.http4k.core.HttpHandler
@@ -14,18 +16,19 @@ import org.http4k.core.Status
 import org.http4k.core.body.form
 import org.http4k.core.getFirst
 import org.http4k.core.toParametersMap
+import org.http4k.routing.ResourceLoader
 import org.http4k.routing.bindHttp
 import org.http4k.routing.bindSse
 import org.http4k.routing.poly
 import org.http4k.routing.routes
 import org.http4k.routing.sse
+import org.http4k.routing.static
 import org.http4k.server.Jetty
 import org.http4k.server.asServer
 import org.http4k.sse.Sse
 import org.http4k.sse.SseMessage
 import org.http4k.sse.SseResponse
 import org.http4k.template.JTETemplates
-import org.http4k.template.ViewModel
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import java.sql.DriverManager
@@ -52,14 +55,11 @@ data class Message(
     val id: UUID = UUID.randomUUID(),
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant? = null
-) : ViewModel {
+) {
     init {
         require(author.length <= 31) { "Author must be 31 characters or less" }
         require(content.length <= 255) { "Content must be 255 characters or less" }
     }
-
-
-    override fun template(): String = "partials/Message"
 }
 
 fun main() {
@@ -77,10 +77,19 @@ fun main() {
     val messageRepository: MessageRepository = JooqMessageRepository(dslContext)
 
     val subscribers = CopyOnWriteArrayList<Sse>()
-    val renderer = JTETemplates().Precompiled("build/generated-resources/jte")
+    val renderer = when (env.appEnv) {
+        Env.DEVELOPMENT -> {
+            println("🔥 Hot-Reloading JTE templates")
+            JTETemplates().HotReload("src/main/kte")
+        }
+        Env.PRODUCTION -> {
+            println("📦 Loading pre-compiled JTE templates")
+            JTETemplates().Precompiled("build/generated-resources/jte")
+        }
+    }
 
     val indexHandler: HttpHandler = {
-        Response(Status.OK).body(renderer(Index(messageRepository.findAll())))
+        Response(Status.OK).body(renderer(IndexTemplate(messageRepository.findAll())))
     }
 
     val sse = sse(
@@ -94,30 +103,38 @@ fun main() {
     )
 
     val http = routes(
+        static(ResourceLoader.Classpath("static")),
+
         "/" bindHttp GET to indexHandler,
 
         "/messages" bindHttp POST to { req ->
-            val params = req.form().toParametersMap()
-            val author = params.getFirst("author").takeIf { !it.isNullOrBlank() } ?: "Anonymous"
-            val message = params.getFirst("message")
+            try {
+                val params = req.form().toParametersMap()
+                val author = params.getFirst("author").takeIf { !it.isNullOrBlank() } ?: "Anonymous"
+                val message = params.getFirst("message")
 
-            if (message == null) {
-                Response(Status.BAD_REQUEST)
-            } else {
-                val msg = Message(author, message)
-                val sseMsg = SseMessage.Data(renderer(msg))
+                if (message == null) {
+                    Response(Status.BAD_REQUEST)
+                } else {
+                    val msg = Message(author, message)
+                    val sseMsg = SseMessage.Data(renderer(MessageTemplate(msg)))
 
-                messageRepository.save(msg)
-                subscribers.forEach {
-                    thread { it.send(sseMsg) }
+                    messageRepository.save(msg)
+                    subscribers.forEach {
+                        thread { it.send(sseMsg) }
+                    }
+
+                    Response(Status.CREATED)
                 }
+            } catch (ex: Exception) {
+                println("Failed to receive message: ${ex.toString()} ${ex.message}")
 
-                Response(Status.CREATED)
+                Response(Status.INTERNAL_SERVER_ERROR)
             }
         }
     )
 
-    poly(http, sse).asServer(Jetty(port = env.port)).start()
+    poly(http, sse).asServer(Jetty(port = env.appPort)).start()
 
-    println("Server started on http://${env.host}:${env.port}")
+    println("Server started on http://${env.appDomain}:${env.appPort}")
 }

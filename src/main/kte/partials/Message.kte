@@ -1,11 +1,35 @@
-@import at.dokkae.homepage.Message
+@import at.dokkae.homepage.templates.MessageTemplate
+@import java.time.Instant
+@import java.time.ZoneId
+@import java.time.format.DateTimeFormatter
+@import kotlin.math.absoluteValue
 
-@param message: Message
+@param model: MessageTemplate
 
-<div class="message">
-    <strong>${message.author}</strong>:
-    ${message.content}
-    <span style="color:#888; font-size:.8rem;">
-        (${message.createdAt.toString()})
-    </span>
+!{val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault())}
+!{val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())}
+!{val borderColors = listOf("red", "orange", "yellow", "green", "blue", "pink" )}
+
+<div class="message-group mb-3 animate-slide-in">
+    <div class="flex relative px-3 py-1 hover:bg-neutral-800/30 rounded transition-colors">
+        <!-- Left border with rotating colors -->
+        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 rounded-r message-border-${borderColors[model.message.id.hashCode().absoluteValue % borderColors.size]}"></div>
+
+        <div class="flex-1 pl-3 text-ellipsis text-wrap break-all">
+            <!-- Header with username and timestamp -->
+            <div class="flex flex-wrap items-baseline gap-2 mb-1">
+                <span class="font-semibold text-white">
+                    ${model.message.author}
+                </span>
+                <span class="text-xs text-neutral-400">
+                    ${dateFormatter.format(model.message.createdAt)} • ${timeFormatter.format(model.message.createdAt)}
+                </span>
+            </div>
+
+            <!-- Message content -->
+            <div class="text-neutral-200">
+                ${model.message.content}
+            </div>
+        </div>
+    </div>
 </div>

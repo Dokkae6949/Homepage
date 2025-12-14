@@ -1,159 +1,162 @@
-@import at.dokkae.homepage.templates.Index
+@import at.dokkae.homepage.templates.IndexTemplate
+@import at.dokkae.homepage.templates.MessageTemplate
+@import gg.jte.support.ForSupport
 
-@param model: Index
+@param model: IndexTemplate
 
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Simple Chat — http4k + JTE + htmx</title>
+    <title>Dokkae's Chat</title>
 
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4" integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <style>
-        :root {
-            --bg: #f5f5f7;
-            --card: #ffffff;
-            --border: #d0d0d5;
-            --bubble-self: #daf0ff;
-            --bubble-other: #ececec;
-            --text-dark: #222;
-            --text-light: #666;
-            --radius: 12px;
-            --spacing: 12px;
-            --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        /* Custom scrollbar */
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
         }
 
-        body {
-            margin: 0;
-            font-family: var(--font);
-            background: var(--bg);
-            display: flex;
-            justify-content: center;
-            padding: 32px 12px;
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
         }
 
-        #chat {
-            width: 100%;
-            max-width: 560px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
         }
 
-        h1 {
-            margin: 0 0 16px;
-            font-size: 1.4rem;
-            color: var(--text-dark);
-            text-align: center;
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
-        #messages {
-            display: flex;
-            flex-direction: column-reverse;
-            gap: var(--spacing);
-            margin-bottom: 20px;
-            max-height: 60vh;
-            overflow-y: auto;
-            padding-right: 4px;
+        /* Animation for new messages */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* Nice scrollbar */
-        #messages::-webkit-scrollbar { width: 6px; }
-        #messages::-webkit-scrollbar-thumb {
-            background: #bbb;
-            border-radius: 3px;
+        .animate-slide-in.htmx-added {
+            opacity: 0;
         }
 
-        .message {
-            padding: 10px 14px;
-            border-radius: var(--radius);
-            max-width: 85%;
-            font-size: 0.95rem;
-            line-height: 1.35;
-            color: var(--text-dark);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        .animate-slide-in {
+            opacity: 1;
+            animation: slideIn 0.3s ease-out;
         }
 
-        .message-author {
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--text-light);
+        /* Different border colors */
+        .message-border-red {
+            background-color: #ffb3ba !important;
         }
 
-        .message-self {
-            align-self: flex-end;
-            background: var(--bubble-self);
+        .message-border-orange {
+            background-color: #ffdfba !important;
         }
 
-        .message-other {
-            align-self: flex-start;
-            background: var(--bubble-other);
+        .message-border-yellow {
+            background-color: #ffffba !important;
         }
 
-        form {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+        .message-border-green {
+            background-color: #baffc9 !important;
         }
 
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            font-size: 1rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: #fff;
+        .message-border-blue {
+            background-color: #bae1ff !important;
         }
 
-        button {
-            padding: 10px 16px;
-            background: #1e88ff;
-            border: none;
-            border-radius: var(--radius);
-            color: white;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: 0.2s;
+        .message-border-pink {
+            background-color: #fddfdf !important;
         }
 
-        button:hover {
-            background: #0c74e8;
-        }
 
-        p.note {
-            font-size: 0.82rem;
-            color: var(--text-light);
-            margin-top: 14px;
-            text-align: center;
-        }
     </style>
 </head>
-<body hx-ext="sse">
-<main id="chat">
-    <h1>Simple Chat</h1>
+<body hx-ext="sse" class="bg-neutral-900 text-neutral-100 min-h-screen overflow-hidden">
+<main class="flex flex-col h-screen max-w-6xl mx-auto px-4 md:px-6">
+    <!-- Header -->
+    <header class="py-5 border-b border-neutral-800 shrink-0">
+        <h1 class="text-xl md:text-2xl font-bold text-white">Dokkae's Chat</h1>
+    </header>
 
-    <div id="messages" sse-connect="/message-events" sse-swap="message" hx-swap="afterbegin">
-        @for (message in model.messages.reversed())
-            @template.partials.Message(message)
-        @endfor
+    <!-- Messages Container - CSS-only scroll to bottom -->
+    <div id="messages-container" class="flex-1 flex flex-col-reverse overflow-y-auto overflow-x-hidden scrollbar-custom py-4">
+        <div id="messages" class="flex flex-col-reverse" sse-connect="/message-events" sse-swap="message" hx-swap="afterbegin">
+            @for (message in model.messages)
+                @template.partials.Message(MessageTemplate(message))
+            @endfor
+        </div>
     </div>
 
+    <!-- Message Form -->
+    <form class="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 mb-4 mt-2 shrink-0"
+          hx-post="/messages"
+          hx-swap="none"
+          hx-on::after-request="if(event.detail.successful)document.getElementById('message-input').value = ''">
+        <div class="flex flex-col md:flex-row gap-3">
+            <!-- Username input -->
+            <div class="flex-1 md:flex-none md:w-48">
+                <div class="relative">
+                    <input id="username-input"
+                           type="text"
+                           name="author"
+                           placeholder="Name (optional)"
+                           class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-3 px-4 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                </div>
+            </div>
 
-    <form hx-post="/messages" hx-swap="none" hx-on::after-request="if(event.detail.successful)document.getElementById('message-input').value = ''">
-        <input id="username-input" type="text" name="author" placeholder="name (optional)">
-        <input id="message-input" type="text" name="message" placeholder="your message" required>
-        <button type="submit">
-            Send
-        </button>
+            <!-- Message input -->
+            <div class="flex-1">
+                <div class="flex flex-row gap-3">
+                    <div class="relative flex-1">
+                        <input id="message-input"
+                               type="text"
+                               name="message"
+                               placeholder="Your message..."
+                               required
+                               autocomplete="off"
+                               class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-3 px-4 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- Send button -->
+                    <button type="submit"
+                            class="bg-rose-200 hover:bg-rose-300 text-black font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+                        <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <g id="Communication / Paper_Plane">
+                                <path id="Vector" d="M10.3078 13.6923L15.1539 8.84619M20.1113 5.88867L16.0207 19.1833C15.6541 20.3747 15.4706 20.9707 15.1544 21.1683C14.8802 21.3396 14.5406 21.3683 14.2419 21.2443C13.8975 21.1014 13.618 20.5433 13.0603 19.428L10.4694 14.2461C10.3809 14.0691 10.3366 13.981 10.2775 13.9043C10.225 13.8363 10.1645 13.7749 10.0965 13.7225C10.0215 13.6647 9.93486 13.6214 9.76577 13.5369L4.57192 10.9399C3.45662 10.3823 2.89892 10.1032 2.75601 9.75879C2.63207 9.4601 2.66033 9.12023 2.83169 8.84597C3.02928 8.52974 3.62523 8.34603 4.81704 7.97932L18.1116 3.88867C19.0486 3.60038 19.5173 3.45635 19.8337 3.57253C20.1094 3.67373 20.3267 3.89084 20.4279 4.16651C20.544 4.48283 20.3999 4.95126 20.1119 5.88729L20.1113 5.88867Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </g>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
     </form>
 
-    <p style="font-size: .9rem; color: #666">No auth — anyone can post. Messages are stored only in memory.</p>
+    <!-- Footer -->
+    <footer class="border-t border-neutral-800 py-4 shrink-0">
+        <p class="text-sm text-neutral-500 text-center">
+            No auth — anyone can post. Open source at
+            <a href="https://github.com/dokkae6949/homepage"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="text-blue-400 hover:text-blue-300 hover:underline transition">
+                dokkae6949/homepage
+            </a>
+        </p>
+    </footer>
 </main>
+
 </body>
 </html>

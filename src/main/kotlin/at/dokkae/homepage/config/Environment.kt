@@ -2,9 +2,15 @@ package at.dokkae.homepage.config
 
 import io.github.cdimascio.dotenv.Dotenv
 
+enum class Env {
+    DEVELOPMENT,
+    PRODUCTION,
+}
+
 data class Environment(
-    val port: Int,
-    val host: String,
+    val appPort: Int,
+    val appDomain: String,
+    val appEnv: Env,
     val dbUrl: String,
     val dbUsername: String,
     val dbPassword: String,
@@ -16,8 +22,9 @@ data class Environment(
          * @throws IllegalStateException if required environment variables were not found within the provided `dotenv` instance.
          */
         fun load(dotenv: Dotenv): Environment = Environment(
-            port = requireEnv(dotenv, "PORT").toInt(),
-            host = requireEnv(dotenv, "HOST"),
+            appPort = requireEnv(dotenv, "APP_PORT").toInt(),
+            appDomain = requireEnv(dotenv, "APP_DOMAIN"),
+            appEnv = Env.valueOf(requireEnv(dotenv, "APP_ENV").uppercase()),
             dbUrl = requireEnv(dotenv, "DB_URL"),
             dbUsername = requireEnv(dotenv, "DB_USERNAME"),
             dbPassword = requireEnv(dotenv, "DB_PASSWORD"),
