@@ -16,7 +16,7 @@ companion object {
 		jteOutput.writeContent("\n")
 		val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 		jteOutput.writeContent("\n")
-		val borderColors = listOf("blue", "green", "pink", "orange")
+		val borderColors = listOf("red", "orange", "yellow", "green", "blue", "pink" )
 		jteOutput.writeContent("\n\n<div class=\"message-group mb-3 animate-slide-in\">\n    <div class=\"flex relative px-3 py-1 hover:bg-neutral-800/30 rounded transition-colors\">\n        ")
 		jteOutput.writeContent("\n        <div class=\"absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 rounded-r message-border-")
 		jteOutput.setContext("div", "class")
