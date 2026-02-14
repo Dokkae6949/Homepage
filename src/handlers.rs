@@ -8,7 +8,10 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Sse},
     Form,
 };
-use axum_extra::extract::{cookie::{Cookie as CookieType, SameSite}, PrivateCookieJar};
+use axum_extra::extract::{
+    cookie::{Cookie as CookieType, SameSite},
+    PrivateCookieJar,
+};
 use chrono::Utc;
 use minijinja::Value;
 use serde::Deserialize;
@@ -38,7 +41,7 @@ pub struct MessageForm {
 /// Show login page
 pub async fn show_login(translator: Translator) -> AppResult<Html<String>> {
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
-    
+
     let context = minijinja::context! {
         language => translator.language(),
         languages => translator.supported_languages(),
@@ -84,8 +87,9 @@ pub async fn login(
     let _ = state.message_tx.send("user-update".to_string());
 
     // Set session cookie
-    let session_json = serde_json::to_string(&session)
-        .map_err(|e| crate::error::AppError::Session(format!("Failed to serialize session: {}", e)))?;
+    let session_json = serde_json::to_string(&session).map_err(|e| {
+        crate::error::AppError::Session(format!("Failed to serialize session: {}", e))
+    })?;
 
     let cookie = CookieType::build((SESSION_COOKIE_NAME, session_json))
         .path("/")
@@ -101,7 +105,7 @@ pub async fn login(
 /// Show chat page
 pub async fn show_chat(user: AuthenticatedUser, translator: Translator) -> AppResult<Html<String>> {
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
-    
+
     let context = minijinja::context! {
         username => user.username,
         language => translator.language(),
@@ -119,7 +123,7 @@ pub async fn get_messages(
     user: AuthenticatedUser,
 ) -> AppResult<Html<String>> {
     let messages = Message::get_recent(&state.pool, 50).await?;
-    
+
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
     let mut html = String::new();
 
@@ -173,7 +177,7 @@ pub async fn get_online_users(
     translator: Translator,
 ) -> AppResult<Html<String>> {
     let users = state.get_online_users().await;
-    
+
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
     let mut html = String::new();
 
@@ -188,7 +192,10 @@ pub async fn get_online_users(
     }
 
     if html.is_empty() {
-        html = format!(r#"<div class="no-users">{}</div>"#, translator.translate("no-users-online"));
+        html = format!(
+            r#"<div class="no-users">{}</div>"#,
+            translator.translate("no-users-online")
+        );
     }
 
     Ok(Html(html))
@@ -198,7 +205,9 @@ pub async fn get_online_users(
 pub async fn events(
     State(state): State<AppState>,
     _user: AuthenticatedUser,
-) -> Sse<impl tokio_stream::Stream<Item = std::result::Result<axum::response::sse::Event, Infallible>>> {
+) -> Sse<
+    impl tokio_stream::Stream<Item = std::result::Result<axum::response::sse::Event, Infallible>>,
+> {
     let rx = state.message_tx.subscribe();
     let stream = BroadcastStream::new(rx).map(move |msg| {
         let event_type = msg.unwrap_or_else(|_| "ping".to_string());
@@ -236,8 +245,9 @@ pub async fn change_language(
         .await?;
 
     // Update session cookie
-    let session_json = serde_json::to_string(&session)
-        .map_err(|e| crate::error::AppError::Session(format!("Failed to serialize session: {}", e)))?;
+    let session_json = serde_json::to_string(&session).map_err(|e| {
+        crate::error::AppError::Session(format!("Failed to serialize session: {}", e))
+    })?;
 
     let cookie = CookieType::build((SESSION_COOKIE_NAME, session_json))
         .path("/")

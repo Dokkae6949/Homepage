@@ -33,11 +33,17 @@ impl IntoResponse for AppError {
         let (status, message) = match self {
             AppError::Database(ref e) => {
                 tracing::error!("Database error: {:?}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Database error".to_string(),
+                )
             }
             AppError::Template(ref msg) => {
                 tracing::error!("Template error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Template error".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Template error".to_string(),
+                )
             }
             AppError::Session(ref msg) => {
                 tracing::warn!("Session error: {}", msg);
@@ -48,7 +54,10 @@ impl IntoResponse for AppError {
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
             AppError::Internal(ref msg) => {
                 tracing::error!("Internal error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Internal server error".to_string(),
+                )
             }
         };
 

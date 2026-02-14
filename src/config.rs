@@ -22,12 +22,12 @@ impl Config {
 
         let database_url = env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/chat".to_string());
-        
+
         let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
         let port = env::var("PORT")
             .unwrap_or_else(|_| "3000".to_string())
             .parse()?;
-        
+
         let environment = match env::var("ENVIRONMENT")
             .unwrap_or_else(|_| "development".to_string())
             .to_lowercase()

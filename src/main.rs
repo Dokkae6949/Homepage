@@ -31,9 +31,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "chat_app=debug,tower_http=debug,axum::rejection=trace".into()
-            }),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "chat_app=debug,tower_http=debug,axum::rejection=trace".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -51,9 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Connected to database");
 
     // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     tracing::info!("Migrations completed");
 
@@ -79,10 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest_service("/static", ServeDir::new("static"))
         .layer(DefaultBodyLimit::max(1024 * 1024)) // 1MB
         .layer(CompressionLayer::new())
-        .layer(
-            TraceLayer::new_for_http()
-                .on_response(DefaultOnResponse::new().level(Level::INFO)),
-        )
+        .layer(TraceLayer::new_for_http().on_response(DefaultOnResponse::new().level(Level::INFO)))
         .with_state(app_state);
 
     // Start server

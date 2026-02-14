@@ -51,12 +51,10 @@ impl Message {
 
     /// Get recent messages (limit 50)
     pub async fn get_recent(pool: &sqlx::PgPool, limit: i64) -> Result<Vec<Self>, sqlx::Error> {
-        sqlx::query_as::<_, Message>(
-            "SELECT * FROM messages ORDER BY created_at DESC LIMIT $1",
-        )
-        .bind(limit)
-        .fetch_all(pool)
-        .await
+        sqlx::query_as::<_, Message>("SELECT * FROM messages ORDER BY created_at DESC LIMIT $1")
+            .bind(limit)
+            .fetch_all(pool)
+            .await
     }
 }
 

@@ -20,8 +20,11 @@ impl Templates {
             .expect("Failed to add chat template");
         env.add_template("message.html", include_str!("../templates/message.html"))
             .expect("Failed to add message template");
-        env.add_template("online_user.html", include_str!("../templates/online_user.html"))
-            .expect("Failed to add online_user template");
+        env.add_template(
+            "online_user.html",
+            include_str!("../templates/online_user.html"),
+        )
+        .expect("Failed to add online_user template");
         env.add_template("error.html", include_str!("../templates/error.html"))
             .expect("Failed to add error template");
 

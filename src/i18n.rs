@@ -25,8 +25,8 @@ impl Translator {
 
     fn load_language(&mut self, lang_code: &str, content: &str) {
         let lang_id: LanguageIdentifier = lang_code.parse().expect("Invalid language ID");
-        let resource = FluentResource::try_new(content.to_string())
-            .expect("Failed to parse FTL string");
+        let resource =
+            FluentResource::try_new(content.to_string()).expect("Failed to parse FTL string");
 
         let mut bundle = FluentBundle::new(vec![lang_id]);
         bundle
