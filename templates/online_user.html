@@ -1,0 +1,4 @@
+<div class="online-user {% if is_current %}current-user{% endif %}">
+    <span class="user-status"></span>
+    <span class="user-name">{{ username }}{% if is_current %} {{ "(you)" | t(language) }}{% endif %}</span>
+</div>

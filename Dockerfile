@@ -1,35 +1,48 @@
-# --- Stage 1: Build the JAR ---
-FROM gradle:9.2.1-jdk21 AS build
+# --- Stage 1: Build the Rust binary ---
+FROM rust:1.75-alpine AS builder
 
-# Set working dir
+# Install build dependencies
+RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig
+
 WORKDIR /app
 
-# Copy Gradle files first (for caching)
-COPY --chown=gradle:gradle build.gradle.kts settings.gradle.kts gradle.properties gradlew ./
-COPY --chown=gradle:gradle gradle ./gradle
+# Copy manifests
+COPY Cargo.toml ./
+
+# Create dummy main to build dependencies
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf src
 
 # Copy source code
-COPY --chown=gradle:gradle src ./src
+COPY src ./src
+COPY migrations ./migrations
+COPY templates ./templates
+COPY locales ./locales
+COPY static ./static
 
-# Copy pre-generated code fragments
-COPY --chown=gradle:gradle build/generated-src ./build/generated-src
-COPY --chown=gradle:gradle build/generated-resources ./build/generated-resources
-
-# Build the fat jar without cleaning (preserves generated code)
-RUN ./gradlew build -x clean -x cleanGenerated -x jooqCodegen -x flywayMigrate -x precompileJte --no-daemon
+# Build the actual application
+RUN touch src/main.rs && cargo build --release
 
 # --- Stage 2: Run the app ---
-FROM eclipse-temurin:21-jdk-alpine
+FROM alpine:3.19
 
-ARG PORT=9000
+# Install runtime dependencies
+RUN apk add --no-cache libgcc openssl
 
 WORKDIR /app
 
-# Copy the built JAR from the build stage
-COPY --from=build /app/build/libs/*.jar app.jar
+# Copy the built binary
+COPY --from=builder /app/target/release/chat-app /app/chat-app
 
-# Expose port (same as your server)
-EXPOSE ${PORT}
+# Copy static assets
+COPY --from=builder /app/static /app/static
+COPY --from=builder /app/templates /app/templates
+COPY --from=builder /app/locales /app/locales
+COPY --from=builder /app/migrations /app/migrations
+
+# Expose port
+EXPOSE 3000
 
 # Run the app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/app/chat-app"]
