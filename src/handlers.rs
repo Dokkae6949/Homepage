@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::AppResult;
 use crate::extractors::{AuthenticatedUser, Translator};
 use crate::models::{Message, Session};
 use crate::state::AppState;
@@ -8,10 +8,10 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Sse},
     Form,
 };
-use axum_extra::extract::PrivateCookieJar;
+use axum_extra::extract::{cookie::{Cookie as CookieType, SameSite}, PrivateCookieJar};
 use chrono::Utc;
 use minijinja::Value;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::convert::Infallible;
 use std::sync::Arc;
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
@@ -36,7 +36,7 @@ pub struct MessageForm {
 }
 
 /// Show login page
-pub async fn show_login(translator: Translator) -> Result<Html<String>> {
+pub async fn show_login(translator: Translator) -> AppResult<Html<String>> {
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
     
     let context = minijinja::context! {
@@ -54,7 +54,7 @@ pub async fn login(
     State(state): State<AppState>,
     jar: PrivateCookieJar,
     Form(form): Form<LoginForm>,
-) -> Result<impl IntoResponse> {
+) -> AppResult<impl IntoResponse> {
     // Validate form
     form.validate()
         .map_err(|e| crate::error::AppError::Validation(format!("{}", e)))?;
@@ -87,10 +87,10 @@ pub async fn login(
     let session_json = serde_json::to_string(&session)
         .map_err(|e| crate::error::AppError::Session(format!("Failed to serialize session: {}", e)))?;
 
-    let cookie = cookie::Cookie::build((SESSION_COOKIE_NAME, session_json))
+    let cookie = CookieType::build((SESSION_COOKIE_NAME, session_json))
         .path("/")
         .http_only(true)
-        .same_site(cookie::SameSite::Strict)
+        .same_site(SameSite::Strict)
         .build();
 
     let jar = jar.add(cookie);
@@ -99,7 +99,7 @@ pub async fn login(
 }
 
 /// Show chat page
-pub async fn show_chat(user: AuthenticatedUser, translator: Translator) -> Result<Html<String>> {
+pub async fn show_chat(user: AuthenticatedUser, translator: Translator) -> AppResult<Html<String>> {
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
     
     let context = minijinja::context! {
@@ -117,7 +117,7 @@ pub async fn show_chat(user: AuthenticatedUser, translator: Translator) -> Resul
 pub async fn get_messages(
     State(state): State<AppState>,
     user: AuthenticatedUser,
-) -> Result<Html<String>> {
+) -> AppResult<Html<String>> {
     let messages = Message::get_recent(&state.pool, 50).await?;
     
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
@@ -142,7 +142,7 @@ pub async fn post_message(
     State(state): State<AppState>,
     user: AuthenticatedUser,
     Form(form): Form<MessageForm>,
-) -> Result<Html<String>> {
+) -> AppResult<Html<String>> {
     // Validate form
     form.validate()
         .map_err(|e| crate::error::AppError::Validation(format!("{}", e)))?;
@@ -171,7 +171,7 @@ pub async fn get_online_users(
     State(state): State<AppState>,
     user: AuthenticatedUser,
     translator: Translator,
-) -> Result<Html<String>> {
+) -> AppResult<Html<String>> {
     let users = state.get_online_users().await;
     
     let templates = Templates::new(Arc::new(crate::i18n::Translator::new()));
@@ -197,8 +197,8 @@ pub async fn get_online_users(
 /// Server-Sent Events endpoint
 pub async fn events(
     State(state): State<AppState>,
-    user: AuthenticatedUser,
-) -> Sse<impl tokio_stream::Stream<Item = Result<axum::response::sse::Event, Infallible>>> {
+    _user: AuthenticatedUser,
+) -> Sse<impl tokio_stream::Stream<Item = std::result::Result<axum::response::sse::Event, Infallible>>> {
     let rx = state.message_tx.subscribe();
     let stream = BroadcastStream::new(rx).map(move |msg| {
         let event_type = msg.unwrap_or_else(|_| "ping".to_string());
@@ -220,7 +220,7 @@ pub async fn change_language(
     user: AuthenticatedUser,
     jar: PrivateCookieJar,
     Form(form): Form<LanguageForm>,
-) -> Result<impl IntoResponse> {
+) -> AppResult<impl IntoResponse> {
     // Update session language
     let session = Session {
         id: user.session_id,
@@ -239,10 +239,10 @@ pub async fn change_language(
     let session_json = serde_json::to_string(&session)
         .map_err(|e| crate::error::AppError::Session(format!("Failed to serialize session: {}", e)))?;
 
-    let cookie = cookie::Cookie::build((SESSION_COOKIE_NAME, session_json))
+    let cookie = CookieType::build((SESSION_COOKIE_NAME, session_json))
         .path("/")
         .http_only(true)
-        .same_site(cookie::SameSite::Strict)
+        .same_site(SameSite::Strict)
         .build();
 
     let jar = jar.add(cookie);

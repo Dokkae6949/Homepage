@@ -1,4 +1,4 @@
-use crate::error::{AppError, Result};
+use crate::error::AppResult;
 use crate::i18n::Translator as I18nTranslator;
 use minijinja::{Environment, Value};
 use std::sync::Arc;
@@ -34,13 +34,13 @@ impl Templates {
         Self { env, translator }
     }
 
-    pub fn render(&self, template_name: &str, context: Value) -> Result<String> {
+    pub fn render(&self, template_name: &str, context: Value) -> AppResult<String> {
         let tmpl = self
             .env
             .get_template(template_name)
-            .map_err(|e| AppError::Template(format!("Template not found: {}", e)))?;
+            .map_err(|e| crate::error::AppError::Template(format!("Template not found: {}", e)))?;
 
         tmpl.render(context)
-            .map_err(|e| AppError::Template(format!("Render error: {}", e)))
+            .map_err(|e| crate::error::AppError::Template(format!("Render error: {}", e)))
     }
 }

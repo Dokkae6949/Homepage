@@ -1,4 +1,6 @@
 use crate::models::OnlineUser;
+use axum::extract::FromRef;
+use axum_extra::extract::cookie::Key;
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -47,5 +49,31 @@ impl AppState {
         if let Some(user) = self.online_users.write().await.get_mut(username) {
             user.last_seen = Utc::now();
         }
+    }
+}
+
+/// Application state with cookie key  
+#[derive(Clone)]
+pub struct AppStateWithKey {
+    pub app_state: AppState,
+    pub key: Key,
+}
+
+impl AppStateWithKey {
+    pub fn new(app_state: AppState, key: Key) -> Self {
+        Self { app_state, key }
+    }
+}
+
+// Implement FromRef for extractors
+impl FromRef<AppStateWithKey> for AppState {
+    fn from_ref(state: &AppStateWithKey) -> Self {
+        state.app_state.clone()
+    }
+}
+
+impl FromRef<AppStateWithKey> for Key {
+    fn from_ref(state: &AppStateWithKey) -> Self {
+        state.key.clone()
     }
 }

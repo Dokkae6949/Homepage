@@ -24,7 +24,7 @@ use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::Config;
-use crate::state::AppState;
+use crate::state::{AppState, AppStateWithKey};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -64,6 +64,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // In production, this should be loaded from environment
     let key = Key::generate();
 
+    let app_state = AppStateWithKey::new(state, key);
+
     // Build router
     let app = Router::new()
         .route("/", get(handlers::show_login))
@@ -81,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             TraceLayer::new_for_http()
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
-        .with_state((state, key));
+        .with_state(app_state);
 
     // Start server
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));

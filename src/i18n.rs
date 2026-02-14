@@ -1,6 +1,5 @@
 use fluent::{FluentArgs, FluentBundle, FluentResource};
 use std::collections::HashMap;
-use std::sync::Arc;
 use unic_langid::LanguageIdentifier;
 
 /// Translation manager for i18n

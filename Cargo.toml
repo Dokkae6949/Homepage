@@ -10,6 +10,7 @@ axum-extra = { version = "0.9", features = ["cookie", "cookie-private"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.5", features = ["fs", "compression-gzip", "trace"] }
 tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 
 # Database
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "migrate"] }
@@ -41,6 +42,7 @@ uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 validator = { version = "0.18", features = ["derive"] }
+cookie = "0.18"
 
 [dev-dependencies]
 testcontainers = "0.23"

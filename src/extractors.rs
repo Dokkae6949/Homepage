@@ -1,14 +1,13 @@
-use crate::error::{AppError, Result};
+use crate::error::{AppError, AppResult};
 use crate::i18n::Translator as I18nTranslator;
 use crate::models::Session;
-use crate::state::AppState;
+use crate::state::{AppState, AppStateWithKey};
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
-use axum_extra::extract::PrivateCookieJar;
-use std::sync::Arc;
+use axum_extra::extract::{cookie::Key, PrivateCookieJar};
 
 const SESSION_COOKIE_NAME: &str = "session";
 
@@ -23,13 +22,14 @@ pub struct AuthenticatedUser {
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthenticatedUser
 where
-    AppState: FromRef<S>,
+    AppStateWithKey: FromRef<S>,
+    Key: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = AppError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self> {
-        let jar = PrivateCookieJar::<cookie::Key>::from_request_parts(parts, state)
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> AppResult<Self> {
+        let jar = PrivateCookieJar::<Key>::from_request_parts(parts, state)
             .await
             .map_err(|e| AppError::Session(format!("Failed to extract cookies: {}", e)))?;
 
@@ -51,20 +51,19 @@ where
 /// Extractor for translations
 #[derive(Clone)]
 pub struct Translator {
-    translator: Arc<I18nTranslator>,
     language: String,
 }
 
 impl Translator {
-    pub fn new(translator: Arc<I18nTranslator>, language: String) -> Self {
-        Self {
-            translator,
-            language,
-        }
+    pub fn new(language: String) -> Self {
+        Self { language }
     }
 
     pub fn translate(&self, key: &str) -> String {
-        self.translator.translate(&self.language, key, None)
+        // For now, return simple translations
+        // In production, you'd load from fluent files
+        let translator = I18nTranslator::new();
+        translator.translate(&self.language, key, None)
     }
 
     pub fn language(&self) -> &str {
@@ -72,19 +71,20 @@ impl Translator {
     }
 
     pub fn supported_languages(&self) -> Vec<String> {
-        self.translator.supported_languages()
+        vec!["en".to_string(), "es".to_string(), "ar".to_string()]
     }
 }
 
 #[async_trait]
 impl<S> FromRequestParts<S> for Translator
 where
-    AppState: FromRef<S>,
+    AppStateWithKey: FromRef<S>,
+    Key: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = AppError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> AppResult<Self> {
         // Try to get language from session, default to 'en'
         let language = if let Ok(user) = AuthenticatedUser::from_request_parts(parts, state).await {
             user.language
@@ -92,9 +92,6 @@ where
             "en".to_string()
         };
 
-        let app_state = AppState::from_ref(state);
-        let translator = Arc::new(I18nTranslator::new());
-
-        Ok(Translator::new(translator, language))
+        Ok(Translator::new(language))
     }
 }

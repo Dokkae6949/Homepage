@@ -2,7 +2,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use std::fmt;
 
 /// Application-wide error type
 #[derive(Debug, thiserror::Error)]
@@ -57,4 +56,4 @@ impl IntoResponse for AppError {
     }
 }
 
-pub type Result<T> = std::result::Result<T, AppError>;
+pub type AppResult<T> = std::result::Result<T, AppError>;
