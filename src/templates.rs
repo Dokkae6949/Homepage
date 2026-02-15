@@ -6,7 +6,7 @@ use std::sync::Arc;
 /// Template renderer
 pub struct Templates {
     env: Environment<'static>,
-    translator: Arc<I18nTranslator>,
+    _translator: Arc<I18nTranslator>,
 }
 
 impl Templates {
@@ -28,13 +28,18 @@ impl Templates {
         env.add_template("error.html", include_str!("../templates/error.html"))
             .expect("Failed to add error template");
 
-        // Add custom filters
+        // Note: The translation filter creates a new translator on each call
+        // This is acceptable for simplicity, but in production you might want to
+        // cache translators or pass translation data through the context
         env.add_filter("t", |key: String, lang: String| -> String {
             let translator = I18nTranslator::new();
             translator.translate(&lang, &key, None)
         });
 
-        Self { env, translator }
+        Self {
+            env,
+            _translator: translator,
+        }
     }
 
     pub fn render(&self, template_name: &str, context: Value) -> AppResult<String> {

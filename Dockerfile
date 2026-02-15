@@ -33,7 +33,7 @@ RUN apk add --no-cache libgcc openssl
 WORKDIR /app
 
 # Copy the built binary
-COPY --from=builder /app/target/release/chat-app /app/chat-app
+COPY --from=builder /app/target/release/chat_app /app/chat_app
 
 # Copy static assets
 COPY --from=builder /app/static /app/static
@@ -45,4 +45,4 @@ COPY --from=builder /app/migrations /app/migrations
 EXPOSE 3000
 
 # Run the app
-ENTRYPOINT ["/app/chat-app"]
+ENTRYPOINT ["/app/chat_app"]

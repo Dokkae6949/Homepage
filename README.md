@@ -161,7 +161,7 @@ cargo test
 cargo build --release
 
 # One binary to deploy
-./target/release/chat-app
+./target/release/chat_app
 ```
 
 ## Why This Stack?
