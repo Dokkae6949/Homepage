@@ -6,17 +6,21 @@
 }
 
 :root {
-    --primary-color: #4f46e5;
-    --primary-hover: #4338ca;
-    --background: #f9fafb;
-    --surface: #ffffff;
-    --border: #e5e7eb;
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
+    /* Dark mode colors */
+    --primary-color: #6366f1;
+    --primary-hover: #4f46e5;
+    --background: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
     --success: #10b981;
     --error: #ef4444;
-    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    --input-bg: #0f172a;
+    --message-bg: #334155;
+    --own-message-bg: #6366f1;
 }
 
 body {
@@ -83,6 +87,8 @@ body {
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.2s;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 .form-group input:focus,
@@ -193,7 +199,8 @@ body {
 }
 
 .online-user.current-user {
-    background: #eef2ff;
+    background: #1e293b;
+    border: 1px solid var(--primary-color);
 }
 
 .user-status {
@@ -232,6 +239,8 @@ body {
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.875rem;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 /* Main Chat Area */
@@ -272,7 +281,7 @@ body {
 
 .message {
     max-width: 70%;
-    background: var(--surface);
+    background: var(--message-bg);
     padding: 0.75rem 1rem;
     border-radius: 12px;
     box-shadow: var(--shadow);
@@ -280,7 +289,7 @@ body {
 
 .message.own-message {
     align-self: flex-end;
-    background: var(--primary-color);
+    background: var(--own-message-bg);
     color: white;
 }
 
@@ -320,18 +329,22 @@ body {
 
 .message-form {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     padding: 1rem 1.5rem;
     background: var(--surface);
     border-top: 1px solid var(--border);
+    align-items: stretch;
 }
 
 .message-form input {
     flex: 1;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 1rem;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    min-width: 0;
 }
 
 .message-form input:focus {
@@ -341,6 +354,8 @@ body {
 
 .message-form button {
     padding: 0.75rem 1.5rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Error Page */

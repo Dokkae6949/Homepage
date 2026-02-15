@@ -33,7 +33,7 @@
                     <select id="language" name="language">
                         {% for lang in languages %}
                         <option value="{{ lang }}" {% if lang == language %}selected{% endif %}>
-                            {{ lang | upper }}
+                            {% if lang == "en" %}English{% elif lang == "de" %}Deutsch{% endif %}
                         </option>
                         {% endfor %}
                     </select>

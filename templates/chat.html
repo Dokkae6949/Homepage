@@ -20,25 +20,12 @@
             </div>
             <div class="online-users" 
                  hx-get="/online-users" 
-                 hx-trigger="sse:user-update"
+                 hx-trigger="load, sse:user-update"
                  hx-swap="innerHTML">
                 <!-- Online users will be loaded here -->
             </div>
             
-            <div class="language-switcher">
-                <label for="lang-select">{{ "language-label" | t(language) }}</label>
-                <select id="lang-select" 
-                        name="language"
-                        hx-post="/change-language"
-                        hx-target="body"
-                        hx-swap="outerHTML">
-                    {% for lang in languages %}
-                    <option value="{{ lang }}" {% if lang == language %}selected{% endif %}>
-                        {{ lang | upper }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+            {% include "language_selector.html" %}
         </aside>
         
         <main class="chat-main">

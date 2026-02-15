@@ -71,7 +71,7 @@ impl Translator {
     }
 
     pub fn supported_languages(&self) -> Vec<String> {
-        vec!["en".to_string(), "es".to_string(), "ar".to_string()]
+        vec!["en".to_string(), "de".to_string()]
     }
 }
 

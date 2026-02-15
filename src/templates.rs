@@ -27,6 +27,11 @@ impl Templates {
         .expect("Failed to add online_user template");
         env.add_template("error.html", include_str!("../templates/error.html"))
             .expect("Failed to add error template");
+        env.add_template(
+            "language_selector.html",
+            include_str!("../templates/language_selector.html"),
+        )
+        .expect("Failed to add language_selector template");
 
         // Note: The translation filter creates a new translator on each call
         // This is acceptable for simplicity, but in production you might want to

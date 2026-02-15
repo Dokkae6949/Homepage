@@ -15,10 +15,9 @@ impl Translator {
             default_lang: "en".to_string(),
         };
 
-        // Load translations
+        // Load translations for English and German only
         translator.load_language("en", include_str!("../locales/en.ftl"));
-        translator.load_language("es", include_str!("../locales/es.ftl"));
-        translator.load_language("ar", include_str!("../locales/ar.ftl"));
+        translator.load_language("de", include_str!("../locales/de.ftl"));
 
         translator
     }

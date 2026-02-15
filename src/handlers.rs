@@ -45,7 +45,7 @@ pub async fn show_login(translator: Translator) -> AppResult<Html<String>> {
     let context = minijinja::context! {
         language => translator.language(),
         languages => translator.supported_languages(),
-        dir => if translator.language() == "ar" { "rtl" } else { "ltr" },
+        dir => "ltr",
     };
 
     let html = templates.render("login.html", Value::from_serialize(&context))?;
@@ -110,7 +110,7 @@ pub async fn show_chat(user: AuthenticatedUser, translator: Translator) -> AppRe
         username => user.username,
         language => translator.language(),
         languages => translator.supported_languages(),
-        dir => if translator.language() == "ar" { "rtl" } else { "ltr" },
+        dir => "ltr",
     };
 
     let html = templates.render("chat.html", Value::from_serialize(&context))?;
