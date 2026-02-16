@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ "chat-title" | t(language) }}</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
-    <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
 </head>
-<body class="chat-page" hx-ext="sse" sse-connect="/events">
+<body class="chat-page">
     <div class="chat-container">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -19,8 +18,9 @@
                 </div>
             </div>
             <div class="online-users" 
+                 id="online-users"
                  hx-get="/online-users" 
-                 hx-trigger="load, sse:user-update"
+                 hx-trigger="load, every 10s"
                  hx-swap="innerHTML">
                 <!-- Online users will be loaded here -->
             </div>
@@ -37,7 +37,7 @@
             <div class="messages" 
                  id="messages"
                  hx-get="/messages"
-                 hx-trigger="load, sse:new-message"
+                 hx-trigger="load, every 2s"
                  hx-swap="innerHTML scroll:bottom">
                 <!-- Messages will be loaded here -->
             </div>
@@ -48,7 +48,7 @@
                   hx-post="/messages" 
                   hx-target="#messages"
                   hx-swap="beforeend scroll:bottom"
-                  hx-on::after-request="this.reset()">
+                  hx-on::after-request="this.reset(); htmx.trigger('#messages', 'reload')">
                 <input 
                     type="text" 
                     name="content" 
@@ -64,6 +64,19 @@
         </main>
     </div>
     
-    <script src="/static/js/chat.js"></script>
+    <script>
+        // Simple polling-based update - more reliable than SSE in many environments
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesDiv = document.getElementById('messages');
+            const usersDiv = document.getElementById('online-users');
+            
+            // Auto-scroll to bottom when new messages arrive
+            const observer = new MutationObserver(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+            
+            observer.observe(messagesDiv, { childList: true, subtree: true });
+        });
+    </script>
 </body>
 </html>
