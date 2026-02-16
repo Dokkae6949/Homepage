@@ -1,0 +1,12 @@
+<div class="language-switcher">
+    <label for="lang-select">{{ "language-label" | t(language) }}</label>
+    <form hx-post="/change-language" hx-target="body" hx-swap="outerHTML">
+        <select id="lang-select" name="language" onchange="this.form.requestSubmit()">
+            {% for lang in languages %}
+            <option value="{{ lang }}" {% if lang == language %}selected{% endif %}>
+                {% if lang == "en" %}English{% elif lang == "de" %}Deutsch{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>

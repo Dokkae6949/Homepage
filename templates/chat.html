@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="{{ language }}" dir="{{ dir }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ "chat-title" | t(language) }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+</head>
+<body class="chat-page">
+    <div class="chat-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>{{ "online-users" | t(language) }}</h3>
+                <div class="connection-status">
+                    <span class="status-indicator" id="status-indicator"></span>
+                    <span id="status-text">{{ "connected" | t(language) }}</span>
+                </div>
+            </div>
+            <div class="online-users" 
+                 id="online-users"
+                 hx-get="/online-users" 
+                 hx-trigger="load, every 10s"
+                 hx-swap="innerHTML">
+                <!-- Online users will be loaded here -->
+            </div>
+            
+            {% include "language_selector.html" %}
+        </aside>
+        
+        <main class="chat-main">
+            <header class="chat-header">
+                <h2>{{ "chat-title" | t(language) }}</h2>
+                <span class="username">{{ username }}</span>
+            </header>
+            
+            <div class="messages" 
+                 id="messages"
+                 hx-get="/messages"
+                 hx-trigger="load, every 2s"
+                 hx-swap="innerHTML scroll:bottom">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <div class="typing-indicator" id="typing-indicator"></div>
+            
+            <form class="message-form" 
+                  hx-post="/messages" 
+                  hx-target="#messages"
+                  hx-swap="beforeend scroll:bottom"
+                  hx-on::after-request="this.reset(); htmx.trigger('#messages', 'reload')">
+                <input 
+                    type="text" 
+                    name="content" 
+                    placeholder="{{ "message-placeholder" | t(language) }}"
+                    required
+                    maxlength="500"
+                    autocomplete="off"
+                >
+                <button type="submit" class="btn btn-primary">
+                    {{ "send-button" | t(language) }}
+                </button>
+            </form>
+        </main>
+    </div>
+    
+    <script>
+        // Simple polling-based update - more reliable than SSE in many environments
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesDiv = document.getElementById('messages');
+            const usersDiv = document.getElementById('online-users');
+            
+            // Auto-scroll to bottom when new messages arrive
+            const observer = new MutationObserver(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+            
+            observer.observe(messagesDiv, { childList: true, subtree: true });
+        });
+    </script>
+</body>
+</html>
